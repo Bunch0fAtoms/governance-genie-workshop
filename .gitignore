@@ -1,0 +1,6 @@
+# Databricks Asset Bundle local state
+.databricks/
+*.log
+
+# OS / editor cruft
+.DS_Store

@@ -1,0 +1,37 @@
+# =============================================================================
+# Governance & Genie Workshop: connection-test bundle
+# =============================================================================
+# A minimal Databricks Asset Bundle (DAB). Its only job is to prove that you can
+# pull this repo, deploy a bundle to your workspace, and run a job. The full
+# workshop materials will be added here before the session.
+#
+# Deploy (bind your workspace at deploy time with --profile):
+#   databricks bundle validate -t dev --profile <your-profile>
+#   databricks bundle deploy   -t dev --profile <your-profile>
+#   databricks bundle run connection_test -t dev --profile <your-profile>
+# =============================================================================
+
+bundle:
+  name: connection_test
+
+targets:
+  dev:
+    default: true
+    mode: development
+    # No workspace host is hardcoded. Bind it at deploy time with --profile,
+    # so this bundle runs against whatever workspace your profile points to.
+
+resources:
+  jobs:
+    connection_test:
+      name: "Connection Test"
+      description: >
+        Runs one notebook on serverless compute. It prints a success message and
+        runs a small read-only query to confirm Spark and Unity Catalog are
+        reachable. It creates and changes nothing in your data.
+      tasks:
+        - task_key: hello
+          notebook_task:
+            notebook_path: ./src/connection_test.py
+      max_concurrent_runs: 1
+      timeout_seconds: 600
