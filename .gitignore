@@ -4,3 +4,10 @@
 
 # OS / editor cruft
 .DS_Store
+
+# Internal review sidecars (never ship to the public repo)
+*.tone-review.md
+*.visual-review.md
+*.executive-review.md
+*.deploy-review.md
+*.deploy-live-review.md
