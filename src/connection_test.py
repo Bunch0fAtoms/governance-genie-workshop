@@ -107,18 +107,24 @@ report = "\n".join(
     ]
 )
 
-# Rendered table for anyone running this interactively in the notebook UI.
-try:
-    display(spark.createDataFrame(results, ["capability", "status", "detail"]))
-except Exception:
-    pass
+# COMMAND ----------
 
+# MAGIC %md
+# MAGIC ## Result
+# MAGIC The table and text below are the report. If you ran this with **Run all** in
+# MAGIC the notebook, it shows right here. If you ran it as a job, it shows on the
+# MAGIC run page. Reply to us with this result.
+
+# COMMAND ----------
+
+# A rendered table, visible in the notebook UI and on the run page.
+display(spark.createDataFrame(results, ["capability", "status", "detail"]))
 print("\n" + report + "\n")
 
-# Return the report as the notebook result. This is what the CLI shows at the end
-# of `bundle run` and what appears on the run page, so the report is visible
-# without opening per-cell output. On failure, put it in the error so it still
-# shows and the job state is FAILED.
+# COMMAND ----------
+
+# Also return the report as the notebook result, so it shows at the end of the CLI
+# `bundle run` and in the run's Output. On failure, raise so the job state is FAILED.
 if fails:
     raise Exception("Capability probe FAILED.\n" + report)
 dbutils.notebook.exit(report)

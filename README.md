@@ -6,9 +6,8 @@ be added here before the day, and you will re-pull to get the latest.
 
 ## What it checks
 
-It deploys one job that runs a single notebook. The notebook creates a temporary
-schema and then runs each governance action the workshop uses, recording a pass or
-fail for each:
+It runs a single notebook that creates a temporary schema, then runs each
+governance action the workshop uses, recording a pass or fail for each:
 
 1. Create a schema.
 2. Create a table and write a row.
@@ -19,48 +18,35 @@ fail for each:
 
 It then drops the schema, so it leaves nothing behind.
 
-## Before you start
+## Run it in the workspace (no local terminal needed)
 
-- The Databricks command-line interface (CLI), installed and authenticated to your
-  workspace, with a profile you can pass as `--profile <your-profile>`.
-- Serverless jobs enabled in the workspace.
-- A catalog where you can create a schema. Pass it as `--var catalog=<your_catalog>`.
-  Point it at the catalog you plan to use for the workshop.
+**1. Pull the repo as a Git folder.**
+In the workspace, go to Workspace, then Create, then Git folder, and paste
+`https://github.com/Bunch0fAtoms/governance-genie-workshop.git`.
 
-## Run it
+**2. Deploy and run the bundle.**
+Open `databricks.yml`. The bundle (Deployments) panel opens on the left. Click
+**Deploy**, then run the **Connection and capability probe** job it created.
 
-```bash
-# 1. Clone the repo
-git clone https://github.com/Bunch0fAtoms/governance-genie-workshop.git
-cd governance-genie-workshop
+**3. See the result on the run page.**
+Open that run (Jobs and Pipelines, or the link the panel shows), click the task,
+and read the **Output**. The result is a table of each capability with PASS or
+FAIL, followed by a `RESULT:` summary line.
 
-# 2. Validate (expect "Validation OK!")
-databricks bundle validate -t dev --profile <your-profile> --var="catalog=<your_catalog>"
+### The quickest way to eyeball it
 
-# 3. Deploy
-databricks bundle deploy -t dev --profile <your-profile> --var="catalog=<your_catalog>"
+Open `src/connection_test.py`, set the **catalog** box at the top to a catalog
+where you can create a schema, attach **Serverless**, and click **Run all**. The
+result table appears inline at the bottom of the notebook. This runs the same
+checks without deploying the job.
 
-# 4. Run
-databricks bundle run connection_test -t dev --profile <your-profile> --var="catalog=<your_catalog>"
-```
+## Where the result shows, and where it does not
 
-## What success looks like
-
-The `bundle run` command prints the report at the end:
-
-```
-RESULT: PASSED  (6/6 checks passed)
-Target: <catalog>.connection_test
-  PASS  create schema
-  PASS  create table and write
-  PASS  column mask (SET MASK)
-  PASS  row filter (SET ROW FILTER)
-  PASS  tags (SET TAGS)
-  PASS  grant / revoke
-```
-
-If a check fails, the run ends FAILED and the same report prints with `FAIL` on the
-line that did not pass, and a short reason next to it.
+- **Shows:** on the run page (the task Output), and inline in the notebook cells
+  when you use Run all.
+- **Does not show:** in the notebook editor before or without a run. A cell that
+  reads only "Command ran successfully" with nothing under it means you are looking
+  at the editor, not a run. Open the run, or use Run all.
 
 A note on the logs: serverless startup lines such as
 `[SnapStart] Environment variable POD_HOSTNAME is not set` are normal and harmless.
@@ -68,5 +54,19 @@ They are not errors. The `RESULT:` report is the line that matters.
 
 ## Send the result back
 
-Reply with that `RESULT:` block. That tells us your workspace is ready, or exactly
-which capability to sort out before the day.
+Reply with the `RESULT:` summary (or a screenshot of the result table). That tells
+us your workspace is ready, or exactly which capability to sort out before the day.
+
+## Optional: from a local terminal
+
+If you prefer the command line, with the Databricks command-line interface (CLI)
+authenticated to your workspace:
+
+```bash
+git clone https://github.com/Bunch0fAtoms/governance-genie-workshop.git
+cd governance-genie-workshop
+databricks bundle deploy -t dev --profile <your-profile> --var="catalog=<your_catalog>"
+databricks bundle run connection_test -t dev --profile <your-profile> --var="catalog=<your_catalog>"
+```
+
+The `RESULT:` report prints at the end of the run.
