@@ -95,25 +95,30 @@ except Exception as e:
 
 passed = sum(1 for _, s, _ in results if s == "PASS")
 fails = [(n, d) for n, s, d in results if s == "FAIL"]
+overall = "PASSED" if not fails else "FAILED"
 
 lines = [f"  {s:4}  {n}" + (f"  ({d})" if d else "") for n, s, d in results]
-report = (
-    "=" * 64
-    + f"\nConnection and capability report  ({passed}/{len(results)} passed)\n"
-    + f"Target: {fq}\n"
-    + "-" * 64
-    + "\n"
-    + "\n".join(lines)
-    + "\n"
-    + "=" * 64
+report = "\n".join(
+    [
+        f"RESULT: {overall}  ({passed}/{len(results)} checks passed)",
+        f"Target: {fq}",
+        "-" * 60,
+        *lines,
+    ]
 )
-print("\n" + report)
 
+# Rendered table for anyone running this interactively in the notebook UI.
+try:
+    display(spark.createDataFrame(results, ["capability", "status", "detail"]))
+except Exception:
+    pass
+
+print("\n" + report + "\n")
+
+# Return the report as the notebook result. This is what the CLI shows at the end
+# of `bundle run` and what appears on the run page, so the report is visible
+# without opening per-cell output. On failure, put it in the error so it still
+# shows and the job state is FAILED.
 if fails:
-    failed = ", ".join(n for n, _ in fails)
-    # Non-zero exit so the CLI and job state both show FAILED, with the reason.
-    raise Exception(
-        f"Capability probe FAILED for: {failed}. Full report is in the run output above."
-    )
-else:
-    dbutils.notebook.exit(f"ALL {passed} CHECKS PASSED for {fq}: " + ", ".join(n for n, _, _ in results))
+    raise Exception("Capability probe FAILED.\n" + report)
+dbutils.notebook.exit(report)

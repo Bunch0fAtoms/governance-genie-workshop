@@ -46,17 +46,27 @@ databricks bundle run connection_test -t dev --profile <your-profile> --var="cat
 
 ## What success looks like
 
-The run finishes and the last line reads:
+The `bundle run` command prints the report at the end:
 
 ```
-ALL 6 CHECKS PASSED for <catalog>.connection_test: create schema, create table and write, column mask (SET MASK), row filter (SET ROW FILTER), tags (SET TAGS), grant / revoke
+RESULT: PASSED  (6/6 checks passed)
+Target: <catalog>.connection_test
+  PASS  create schema
+  PASS  create table and write
+  PASS  column mask (SET MASK)
+  PASS  row filter (SET ROW FILTER)
+  PASS  tags (SET TAGS)
+  PASS  grant / revoke
 ```
 
-If a check fails, the run ends FAILED and names what failed, for example
-`Capability probe FAILED for: grant / revoke`. The full pass and fail report is in
-the run output, which you can open from the run URL the CLI prints.
+If a check fails, the run ends FAILED and the same report prints with `FAIL` on the
+line that did not pass, and a short reason next to it.
+
+A note on the logs: serverless startup lines such as
+`[SnapStart] Environment variable POD_HOSTNAME is not set` are normal and harmless.
+They are not errors. The `RESULT:` report is the line that matters.
 
 ## Send the result back
 
-Reply with that last line (or the failure message). That tells us your workspace is
-ready, or exactly which capability to sort out before the day.
+Reply with that `RESULT:` block. That tells us your workspace is ready, or exactly
+which capability to sort out before the day.
