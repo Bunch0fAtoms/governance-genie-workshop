@@ -1,8 +1,10 @@
 # Governance and Genie Workshop: connection and capability check
 
-This is a minimal Databricks Asset Bundle (DAB). It confirms your workspace is
-ready for the workshop build before the session. The full workshop materials will
-be added here before the day, and you will re-pull to get the latest.
+This repo confirms your workspace is ready for the workshop build before the
+session. It uses a minimal Declarative Automation Bundles (DAB, formerly Databricks
+Asset Bundles) configuration to run a connection and capability test. The full
+workshop materials will be added here before the day, and you will re-pull to get
+the latest.
 
 ## What it checks
 
@@ -26,17 +28,17 @@ In the workspace, go to Workspace, then Create, then Git folder, and paste
 
 **2. Deploy and run the bundle.**
 Open `databricks.yml`. The bundle (Deployments) panel opens on the left. Click
-**Deploy**, then run the **Connection and capability probe** job it created.
+**Deploy**, then run the **Connection and capability probe** job that Deploy creates.
 
 **3. See the result on the run page.**
-Open that run (Jobs and Pipelines, or the link the panel shows), click the task,
-and read the **Output**. The result is a table of each capability with PASS or
-FAIL, followed by a `RESULT:` summary line.
+Open that run. You can find it under Jobs and Pipelines, or click the link the
+panel shows. Click the task and read the **Output**. The result is a table of each
+capability with PASS or FAIL, followed by a `RESULT:` summary line.
 
 ### The quickest way to eyeball it
 
-Open `src/connection_test.py`, set the **catalog** box at the top to a catalog
-where you can create a schema, attach **Serverless**, and click **Run all**. The
+Open `src/connection_test.py`. Set the **catalog** box at the top to a catalog
+where you can create a schema. Attach **Serverless** and click **Run all**. The
 result table appears inline at the bottom of the notebook. This runs the same
 checks without deploying the job.
 

@@ -1,4 +1,4 @@
-# Databricks Asset Bundle local state
+# Declarative Automation Bundles (DAB) local state
 .databricks/
 *.log
 

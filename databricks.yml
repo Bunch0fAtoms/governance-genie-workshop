@@ -1,7 +1,8 @@
 # =============================================================================
 # Governance & Genie Workshop: connection and capability probe bundle
 # =============================================================================
-# A minimal Databricks Asset Bundle (DAB). It confirms you can pull this repo,
+# A minimal Declarative Automation Bundles (DAB, formerly Databricks Asset Bundles).
+# It confirms you can pull this repo,
 # deploy a bundle to your workspace, run a job, and perform the governance
 # actions the workshop build needs (create schema, mask, row filter, tags,
 # grant). The full workshop materials will be added here before the session.
