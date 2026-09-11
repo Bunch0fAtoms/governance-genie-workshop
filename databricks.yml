@@ -1,18 +1,28 @@
 # =============================================================================
-# Governance & Genie Workshop: connection-test bundle
+# Governance & Genie Workshop: connection and capability probe bundle
 # =============================================================================
-# A minimal Databricks Asset Bundle (DAB). Its only job is to prove that you can
-# pull this repo, deploy a bundle to your workspace, and run a job. The full
-# workshop materials will be added here before the session.
+# A minimal Databricks Asset Bundle (DAB). It confirms you can pull this repo,
+# deploy a bundle to your workspace, run a job, and perform the governance
+# actions the workshop build needs (create schema, mask, row filter, tags,
+# grant). The full workshop materials will be added here before the session.
 #
-# Deploy (bind your workspace at deploy time with --profile):
-#   databricks bundle validate -t dev --profile <your-profile>
-#   databricks bundle deploy   -t dev --profile <your-profile>
-#   databricks bundle run connection_test -t dev --profile <your-profile>
+# Deploy (bind your workspace with --profile, and point --var catalog at a
+# catalog where you can create a schema):
+#   databricks bundle validate -t dev --profile <your-profile> --var="catalog=<your_catalog>"
+#   databricks bundle deploy   -t dev --profile <your-profile> --var="catalog=<your_catalog>"
+#   databricks bundle run connection_test -t dev --profile <your-profile> --var="catalog=<your_catalog>"
 # =============================================================================
 
 bundle:
   name: connection_test
+
+variables:
+  catalog:
+    default: main
+    description: "A catalog where you can create a schema. Point it at your workshop catalog."
+  schema:
+    default: connection_test
+    description: "Temporary schema the probe creates and then drops."
 
 targets:
   dev:
@@ -24,14 +34,17 @@ targets:
 resources:
   jobs:
     connection_test:
-      name: "Connection Test"
+      name: "Connection and capability probe"
       description: >
-        Runs one notebook on serverless compute. It prints a success message and
-        runs a small read-only query to confirm Spark and Unity Catalog are
-        reachable. It creates and changes nothing in your data.
+        Runs one notebook on serverless compute. It probes the governance
+        primitives the workshop uses against a temporary schema, prints a
+        pass/fail report, and drops the schema so nothing is left behind.
       tasks:
-        - task_key: hello
+        - task_key: probe
           notebook_task:
             notebook_path: ./src/connection_test.py
+            base_parameters:
+              catalog: ${var.catalog}
+              schema: ${var.schema}
       max_concurrent_runs: 1
       timeout_seconds: 600

@@ -1,30 +1,119 @@
 # Databricks notebook source
 # MAGIC %md
-# MAGIC # Connection Test
+# MAGIC # Connection and capability probe
 # MAGIC
-# MAGIC If this notebook finishes, four things work:
-# MAGIC 1. You pulled the repo.
-# MAGIC 2. Your Databricks command-line interface (CLI) is authenticated to the workspace.
-# MAGIC 3. The bundle deployed.
-# MAGIC 4. A job ran on compute.
+# MAGIC Confirms you can run the workshop build, not just connect. It runs each
+# MAGIC governance primitive the workshop uses against a temporary schema, records a
+# MAGIC pass or fail per capability, then drops the schema so nothing is left behind.
 # MAGIC
-# MAGIC It is read-only. It creates and changes nothing in your data.
+# MAGIC What it checks: create schema, create table and write, column mask, row
+# MAGIC filter, tags, and grant/revoke. It prints a report at the end and exits with
+# MAGIC that report. If any check fails, the job ends FAILED and names what failed.
 
 # COMMAND ----------
 
-from datetime import datetime
-
-print("Bundle deployed and the job is running.")
-print(f"Workspace clock: {datetime.now().isoformat()}")
+dbutils.widgets.text("catalog", "main", "A catalog you can create a schema in")
+dbutils.widgets.text("schema", "connection_test", "Temporary schema name")
+catalog = dbutils.widgets.get("catalog")
+schema = dbutils.widgets.get("schema")
+fq = f"{catalog}.{schema}"
+print(f"Probing against {fq}\n")
 
 # COMMAND ----------
 
-# A small read-only query confirms Spark and Unity Catalog are reachable.
-df = spark.sql(
-    "SELECT current_user() AS user, current_catalog() AS catalog, current_timestamp() AS run_time"
+results = []  # (capability, "PASS"/"FAIL", detail)
+
+
+def probe(name, fn):
+    try:
+        fn()
+        results.append((name, "PASS", ""))
+        print(f"  [PASS] {name}")
+    except Exception as e:
+        detail = str(e).splitlines()[0][:180]
+        results.append((name, "FAIL", detail))
+        print(f"  [FAIL] {name}: {detail}")
+
+
+def do_schema():
+    spark.sql(f"CREATE SCHEMA IF NOT EXISTS {fq} COMMENT 'connection test, safe to drop'")
+
+
+def do_table():
+    spark.sql(f"CREATE TABLE IF NOT EXISTS {fq}.ping (id INT, note STRING)")
+    spark.sql(f"INSERT INTO {fq}.ping VALUES (1, 'connection test')")
+    assert spark.sql(f"SELECT COUNT(*) c FROM {fq}.ping").collect()[0]["c"] >= 1
+
+
+def do_column_mask():
+    # SQL UDF must use RETURN (not AS $$..$$) and return the column's type.
+    spark.sql(f"CREATE OR REPLACE FUNCTION {fq}.mask_note(v STRING) RETURN '***'")
+    spark.sql(f"ALTER TABLE {fq}.ping ALTER COLUMN note SET MASK {fq}.mask_note")
+    got = spark.sql(f"SELECT note FROM {fq}.ping LIMIT 1").collect()[0]["note"]
+    assert got == "***", f"mask did not apply, read {got!r}"
+
+
+def do_row_filter():
+    spark.sql(f"CREATE OR REPLACE FUNCTION {fq}.rf(id INT) RETURN id >= 0")
+    spark.sql(f"ALTER TABLE {fq}.ping SET ROW FILTER {fq}.rf ON (id)")
+    spark.sql(f"SELECT * FROM {fq}.ping").collect()  # still readable with the filter on
+
+
+def do_tags():
+    # Use a test-specific tag key. A common key like "classification" may carry a
+    # UC tag policy that restricts its values, which would fail for reasons
+    # unrelated to whether you can set tags at all.
+    spark.sql(f"ALTER TABLE {fq}.ping SET TAGS ('connection_test' = 'true')")
+    spark.sql(f"ALTER TABLE {fq}.ping ALTER COLUMN note SET TAGS ('connection_test' = 'true')")
+
+
+def do_grant():
+    spark.sql(f"GRANT USE SCHEMA ON SCHEMA {fq} TO `account users`")
+    spark.sql(f"REVOKE USE SCHEMA ON SCHEMA {fq} FROM `account users`")
+
+
+# COMMAND ----------
+
+print("Running probes:")
+probe("create schema", do_schema)
+probe("create table and write", do_table)
+probe("column mask (SET MASK)", do_column_mask)
+probe("row filter (SET ROW FILTER)", do_row_filter)
+probe("tags (SET TAGS)", do_tags)
+probe("grant / revoke", do_grant)
+
+# COMMAND ----------
+
+# Clean up: dropping the schema removes the table and the functions with it.
+try:
+    spark.sql(f"DROP SCHEMA IF EXISTS {fq} CASCADE")
+    print(f"\nCleaned up {fq}. Nothing left behind.")
+except Exception as e:
+    print(f"\nCleanup warning (you may need to drop {fq} by hand): {str(e).splitlines()[0]}")
+
+# COMMAND ----------
+
+passed = sum(1 for _, s, _ in results if s == "PASS")
+fails = [(n, d) for n, s, d in results if s == "FAIL"]
+
+lines = [f"  {s:4}  {n}" + (f"  ({d})" if d else "") for n, s, d in results]
+report = (
+    "=" * 64
+    + f"\nConnection and capability report  ({passed}/{len(results)} passed)\n"
+    + f"Target: {fq}\n"
+    + "-" * 64
+    + "\n"
+    + "\n".join(lines)
+    + "\n"
+    + "=" * 64
 )
-df.show(truncate=False)
+print("\n" + report)
 
-# COMMAND ----------
-
-print("Connection test passed. You are ready for the workshop build.")
+if fails:
+    failed = ", ".join(n for n, _ in fails)
+    # Non-zero exit so the CLI and job state both show FAILED, with the reason.
+    raise Exception(
+        f"Capability probe FAILED for: {failed}. Full report is in the run output above."
+    )
+else:
+    dbutils.notebook.exit(f"ALL {passed} CHECKS PASSED for {fq}: " + ", ".join(n for n, _, _ in results))
