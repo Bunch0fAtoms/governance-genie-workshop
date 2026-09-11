@@ -37,10 +37,13 @@ capability with PASS or FAIL, followed by a `RESULT:` summary line.
 
 ### The quickest way to eyeball it
 
-Open `src/connection_test.py`. Set the **catalog** box at the top to a catalog
-where you can create a schema. Attach **Serverless** and click **Run all**. The
+Open `src/connection_test.py`. Attach **Serverless** and click **Run all**. The
 result table appears inline at the bottom of the notebook. This runs the same
 checks without deploying the job.
+
+By default it uses your workspace's current catalog. If the create-schema check
+fails with a permission error, set the **catalog** box at the top to a catalog
+where you can create a schema, then run again.
 
 ## Where the result shows, and where it does not
 
@@ -67,8 +70,10 @@ authenticated to your workspace:
 ```bash
 git clone https://github.com/Bunch0fAtoms/governance-genie-workshop.git
 cd governance-genie-workshop
-databricks bundle deploy -t dev --profile <your-profile> --var="catalog=<your_catalog>"
-databricks bundle run connection_test -t dev --profile <your-profile> --var="catalog=<your_catalog>"
+databricks bundle deploy -t dev --profile <your-profile>
+databricks bundle run connection_test -t dev --profile <your-profile>
 ```
 
-The `RESULT:` report prints at the end of the run.
+The `RESULT:` report prints at the end of the run. It uses your workspace's current
+catalog by default. To test a specific catalog, add
+`--var="catalog=<your_catalog>"` to the deploy and run commands.

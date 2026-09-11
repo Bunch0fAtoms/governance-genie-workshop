@@ -19,8 +19,8 @@ bundle:
 
 variables:
   catalog:
-    default: main
-    description: "A catalog where you can create a schema. Point it at your workshop catalog."
+    default: ""
+    description: "Catalog to test. Leave blank to use the workspace default catalog, or set it to your workshop catalog."
   schema:
     default: connection_test
     description: "Temporary schema the probe creates and then drops."

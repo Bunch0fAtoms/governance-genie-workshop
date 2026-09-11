@@ -12,10 +12,17 @@
 
 # COMMAND ----------
 
-dbutils.widgets.text("catalog", "main", "A catalog you can create a schema in")
+dbutils.widgets.text("catalog", "", "Catalog to test (leave blank to use the workspace default)")
 dbutils.widgets.text("schema", "connection_test", "Temporary schema name")
-catalog = dbutils.widgets.get("catalog")
-schema = dbutils.widgets.get("schema")
+catalog = dbutils.widgets.get("catalog").strip()
+schema = dbutils.widgets.get("schema").strip() or "connection_test"
+
+# Default to the workspace's current catalog, which is usually one you can use.
+# Set the catalog box (or --var catalog) if you want a specific one.
+if not catalog:
+    catalog = spark.sql("SELECT current_catalog()").collect()[0][0]
+    print(f"No catalog set. Using the workspace default catalog: {catalog}")
+
 fq = f"{catalog}.{schema}"
 print(f"Probing against {fq}\n")
 
@@ -98,6 +105,16 @@ fails = [(n, d) for n, s, d in results if s == "FAIL"]
 overall = "PASSED" if not fails else "FAILED"
 
 lines = [f"  {s:4}  {n}" + (f"  ({d})" if d else "") for n, s, d in results]
+
+# If the schema could not be created, the rest cascade from that. Point the reader
+# at the one thing to change.
+if any(n == "create schema" and s == "FAIL" for n, s, _ in results):
+    lines += [
+        "",
+        "  Hint: the catalog above is not usable here. Set the catalog (the box at",
+        "        the top, or --var catalog) to one where you can create a schema.",
+    ]
+
 report = "\n".join(
     [
         f"RESULT: {overall}  ({passed}/{len(results)} checks passed)",
