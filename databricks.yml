@@ -1,51 +1,186 @@
 # =============================================================================
-# Governance & Genie Workshop: connection and capability probe bundle
+# Genie Governance Workshop — client kit Declarative Automation Bundle (DAB)
 # =============================================================================
-# A minimal Declarative Automation Bundles (DAB, formerly Databricks Asset Bundles).
-# It confirms you can pull this repo,
-# deploy a bundle to your workspace, run a job, and perform the governance
-# actions the workshop build needs (create schema, mask, row filter, tags,
-# grant). The full workshop materials will be added here before the session.
+# Two clean layers, cleanly separated (see PRD section 5A):
 #
-# Deploy (bind your workspace with --profile, and point --var catalog at a
-# catalog where you can create a schema):
-#   databricks bundle validate -t dev --profile <your-profile> --var="catalog=<your_catalog>"
-#   databricks bundle deploy   -t dev --profile <your-profile> --var="catalog=<your_catalog>"
-#   databricks bundle run connection_test -t dev --profile <your-profile> --var="catalog=<your_catalog>"
+#   1. Pre-built FOUNDATION (this bundle's foundation_build job + foundation_pipeline).
+#      Runs GREEN on a fresh workspace with no TODOs: synthetic data, the medallion
+#      (bronze -> silver -> gold certified materialized views), and the five metric
+#      views. The certified data is ready before the room arrives.
+#
+#   2. The PARTICIPANT layer (notebooks/todo/ and the apply_access_control engine).
+#      The room builds the governance and Genie layers on top of the green foundation.
+#      The reference/ANSWER_KEY holds the exact correct version of every step.
+#
+# Deploy (bind your workspace with --profile and point --var catalog at a catalog
+# where you can create schemas; catalog is required, there is no default):
+#   databricks bundle validate --profile <your-profile> --var="catalog=<your_catalog>"
+#   databricks bundle deploy   --profile <your-profile> --var="catalog=<your_catalog>"
+#   databricks bundle run foundation_build --profile <your-profile> --var="catalog=<your_catalog>"
+#
+# Single-catalog vs two-catalog: on a workspace where you cannot create catalogs
+# (for example a shared metastore), deploy into one catalog and separate certified
+# from sandbox by SCHEMA (workshop_analytics / workshop_governance / workshop_sandbox).
+# On a metastore where you can create catalogs, set --var catalog=workshop_certified
+# and --var sandbox_catalog=workshop_sandbox to restore the two-catalog design. The
+# notebooks read both via dbutils.widgets.get() and carry no environment logic.
 # =============================================================================
 
 bundle:
-  name: connection_test
+  name: genie_governance_workshop
+
+workspace:
+  # Per-user root path: each participant deploys to their own workspace home, so
+  # every group's Terraform state stays separate. Development mode requires the
+  # username in the path for uniqueness.
+  root_path: /Workspace/Users/${workspace.current_user.userName}/ef-workshop/genie_governance_workshop/${bundle.target}
 
 variables:
   catalog:
-    default: ""
-    description: "Catalog to test. Leave blank to use the workspace default catalog, or set it to your workshop catalog."
+    # Placeholder default so an in-workspace "Deploy to dev" can resolve ${var.catalog}.
+    # REPLACE "update_here" with your catalog before deploying, or override it with
+    # --var catalog=<your_catalog> or .databricks/bundle/<target>/variable-overrides.json.
+    # This holds the certified analytics and governance schemas.
+    default: "update_here"
+    description: "Primary catalog holding the certified analytics and governance schemas (required)"
+  sandbox_catalog:
+    # Defaults to the primary catalog (single-catalog deployments). Override to a
+    # separate catalog to restore the two-catalog design.
+    default: ${var.catalog}
+    description: "Catalog holding the uncertified sandbox (workshop_sandbox) schema"
   schema:
-    default: connection_test
-    description: "Temporary schema the probe creates and then drops."
+    default: workshop_analytics
+    description: "Schema for certified gold tables and metric views"
+  privileged_principals:
+    # Account groups (or users) exempt from the ABAC masks. The shipped default is the two account
+    # groups from arc step 1. On a workspace without account-admin (so the groups cannot be created),
+    # override with your own user, e.g. --var "privileged_principals=you@example.com". An empty value
+    # exempts no one, so every caller sees the masked view.
+    default: "workshop_stewards,workshop_admins"
+    description: "Comma-separated account groups or users exempt from the ABAC column masks and row filter"
 
 targets:
   dev:
     default: true
     mode: development
-    # No workspace host is hardcoded. Bind it at deploy time with --profile,
-    # so this bundle runs against whatever workspace your profile points to.
+    # No workspace host is hardcoded. Bind it at deploy time with --profile, so this
+    # bundle ports to any serverless workspace (including Azure) without changes.
 
 resources:
+  pipelines:
+    # Foundation medallion (bronze -> silver -> gold) as a Spark Declarative Pipeline.
+    # The transforms are declared once as materialized views and the pipeline resolves
+    # the dependency graph. It reads the synthetic seeds (patients/claims/revenue_summary)
+    # by fully qualified name via source_catalog/source_schema, and writes its materialized
+    # views into ${var.catalog}.${var.schema}.
+    foundation_pipeline:
+      name: "Genie Governance Workshop: Foundation Pipeline (SDP)"
+      catalog: ${var.catalog}
+      schema: ${var.schema}
+      serverless: true
+      configuration:
+        source_catalog: ${var.catalog}
+        source_schema: ${var.schema}
+      libraries:
+        - file:
+            path: pipeline/01_bronze.sql
+        - file:
+            path: pipeline/02_silver.sql
+        - file:
+            path: pipeline/03_gold.sql
+
   jobs:
-    connection_test:
-      name: "Connection and capability probe"
+    # ---------------------------------------------------------------------------
+    # PRE-BUILT FOUNDATION — runs GREEN, no TODOs. Deploy and run this before the room.
+    # ---------------------------------------------------------------------------
+    foundation_build:
+      name: "Genie Governance Workshop: Foundation Build (pre-built, green)"
       description: >
-        Runs one notebook on serverless compute. It probes the governance
-        primitives the workshop uses against a temporary schema, prints a
-        pass/fail report, and drops the schema so nothing is left behind.
+        Builds the certified foundation the room builds governance and Genie on top of.
+        This job has no TODOs and must run green on a fresh workspace.
+
+        Task sequence:
+        - generate_foundation: synthetic patients (300), claims (4,200), revenue (3,600)
+        - foundation_pipeline: bronze -> silver -> gold certified materialized views
+        - metric_views: the five views the Genie space reads
+
+        Gold grain: 300 patients / 3,900 gold claims / 3,600 revenue rows.
       tasks:
-        - task_key: probe
+        - task_key: generate_foundation
           notebook_task:
-            notebook_path: ./src/connection_test.py
+            notebook_path: foundation/00_load_foundation.py
+            base_parameters:
+              catalog: ${var.catalog}
+              sandbox_catalog: ${var.sandbox_catalog}
+              schema: ${var.schema}
+
+        - task_key: foundation_pipeline
+          depends_on:
+            - task_key: generate_foundation
+          pipeline_task:
+            pipeline_id: ${resources.pipelines.foundation_pipeline.id}
+
+        - task_key: metric_views
+          depends_on:
+            - task_key: foundation_pipeline
+          notebook_task:
+            notebook_path: foundation/04_metric_views.py
             base_parameters:
               catalog: ${var.catalog}
               schema: ${var.schema}
+
+        # Pre-built governance (arc step 2): the access_control table + audit log, seeded.
+        # The room verifies these and extends the pattern; it does not build the table from scratch.
+        - task_key: access_control
+          depends_on:
+            - task_key: metric_views
+          notebook_task:
+            notebook_path: foundation/05_access_control.py
+            base_parameters:
+              catalog: ${var.catalog}
+              sandbox_catalog: ${var.sandbox_catalog}
+              schema: ${var.schema}
+              governance_schema: workshop_governance
+
+        # Pre-built governance example (arc steps 3 to 5, demonstrated once on ssn + region).
+        # The room repeats the pattern for dob, patient_name, and the patient_id join key.
+        - task_key: governance_examples
+          depends_on:
+            - task_key: access_control
+          notebook_task:
+            notebook_path: foundation/06_governance_examples.py
+            base_parameters:
+              catalog: ${var.catalog}
+              sandbox_catalog: ${var.sandbox_catalog}
+              schema: ${var.schema}
+              governance_schema: workshop_governance
+              privileged_principals: ${var.privileged_principals}
+
+      max_concurrent_runs: 1
+      timeout_seconds: 3600
+
+    # ---------------------------------------------------------------------------
+    # PARTICIPANT enforcement engine — the on-demand policy-as-code apply engine.
+    # The room completes the TODOs in notebooks/todo/apply_access_control.py, then
+    # runs this job to reconcile the access_control table to actual UC grants. In
+    # production this same job runs on a schedule; here the room runs it on demand
+    # to prove the auto-grant / auto-expire loop.
+    # ---------------------------------------------------------------------------
+    apply_access_control:
+      name: "Genie Governance Workshop: Apply Access Control (policy-as-code engine)"
+      description: >
+        The policy-as-code enforcement engine. Reads the access_control table and
+        reconciles it to Unity Catalog grants: active rows get GRANT, expired rows
+        get REVOKE, every action is logged to the audit table. Run it on demand
+        during the workshop, or on a schedule in production. Complete the TODOs in
+        notebooks/todo/apply_access_control.py before the first run.
+      tasks:
+        - task_key: apply_grants
+          notebook_task:
+            notebook_path: notebooks/todo/apply_access_control.py
+            base_parameters:
+              catalog: ${var.catalog}
+              sandbox_catalog: ${var.sandbox_catalog}
+
       max_concurrent_runs: 1
       timeout_seconds: 600

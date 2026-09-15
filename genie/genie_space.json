@@ -1,0 +1,308 @@
+{
+  "version": 2,
+  "config": {
+    "sample_questions": [
+      {
+        "id": "00000000000000000000000000000001",
+        "question": [
+          "Average cycle time from PSA intake to Pump on Body in Q1 2026, by channel and device type \u2014 which combination is fastest?"
+        ]
+      },
+      {
+        "id": "00000000000000000000000000000002",
+        "question": [
+          "If we shift 15 percent of DME Mobi volume to DTC over Q2 and Q3, what happens to gross margin?"
+        ]
+      }
+    ]
+  },
+  "data_sources": {
+    "metric_views": [
+      {
+        "identifier": "{{CATALOG}}.workshop_analytics.mv_fulfillment_rate",
+        "description": [
+          "PSA-to-Pump-on-Body cycle time and claim volume by channel (certified)."
+        ]
+      },
+      {
+        "identifier": "{{CATALOG}}.workshop_analytics.mv_gross_margin",
+        "description": [
+          "Gross margin percent and dollars by channel, device, and region (certified)."
+        ]
+      },
+      {
+        "identifier": "{{CATALOG}}.workshop_analytics.mv_recognized_revenue",
+        "description": [
+          "Per-patient per-month recognized revenue (upfront and recurring), certified."
+        ],
+        "column_configs": [
+          {
+            "column_name": "Patient Id",
+            "exclude": true,
+            "enable_format_assistance": false,
+            "enable_entity_matching": false
+          }
+        ]
+      },
+      {
+        "identifier": "{{CATALOG}}.workshop_analytics.mv_recurring_revenue",
+        "description": [
+          "Consumable (recurring) revenue cohorts by channel, device, and lifecycle status."
+        ]
+      },
+      {
+        "identifier": "{{CATALOG}}.workshop_analytics.mv_revenue_by_channel",
+        "description": [
+          "Recognized revenue by channel, device, and quarter (certified)."
+        ]
+      }
+    ]
+  },
+  "instructions": {
+    "text_instructions": [
+      {
+        "id": "00000000000000000000000000000003",
+        "content": [
+          "## Channel definitions\n",
+          "There are three sales channels:\n",
+          "  \u2022 DME \u2014 Durable Medical Equipment via Healthcare Providers\n",
+          "  \u2022 Pharmacy\n",
+          "  \u2022 DTC \u2014 Direct-to-Consumer\n",
+          "\n",
+          "## Revenue recognition rules\n",
+          "Durables (pumps) recognize revenue upfront at the 'Pump on Body' milestone.\n",
+          "Consumables (infusion sets, cartridges) recognize revenue monthly on a recurring basis.\n",
+          "\n",
+          "## Cycle time\n",
+          "Cycle time is the number of days from PSA (Patient Services Agreement) intake to the Pump on Body milestone.\n",
+          "\n",
+          "## Gross margin\n",
+          "Gross margin = Margin USD / Revenue USD, expressed as a percentage.\n",
+          "\n",
+          "## Term definitions\n",
+          "For detailed term definitions refer to the published Unity Catalog Page named 'Commercial Ontology'.\n",
+          "\n",
+          "## Data governance\n",
+          "Only the five certified metric views in workshop_analytics are available. Do not attempt to query raw or sandbox tables. Patient Id is excluded; never surface individual patient identifiers.\n"
+        ]
+      }
+    ]
+  },
+  "benchmarks": {
+    "questions": [
+      {
+        "id": "00000000000000000000000000000004",
+        "question": [
+          "What is the average cycle time from PSA intake to Pump on Body in Q1 2026 by channel and device type?"
+        ],
+        "answer": [
+          {
+            "format": "SQL",
+            "content": [
+              "SELECT\n",
+              "  Channel,\n",
+              "  `Device Type`,\n",
+              "  `Avg Cycle Time Days`\n",
+              "FROM MEASURE({{CATALOG}}.workshop_analytics.mv_fulfillment_rate,\n",
+              "  `Avg Cycle Time Days`)\n",
+              "WHERE Quarter = 1 AND Year = 2026\n",
+              "GROUP BY Channel, `Device Type`\n",
+              "ORDER BY `Avg Cycle Time Days` ASC"
+            ]
+          }
+        ]
+      },
+      {
+        "id": "00000000000000000000000000000005",
+        "question": [
+          "Which channel and device type combination had the fastest cycle time in Q1 2026?"
+        ],
+        "answer": [
+          {
+            "format": "SQL",
+            "content": [
+              "SELECT\n",
+              "  Channel,\n",
+              "  `Device Type`,\n",
+              "  `Avg Cycle Time Days`\n",
+              "FROM MEASURE({{CATALOG}}.workshop_analytics.mv_fulfillment_rate,\n",
+              "  `Avg Cycle Time Days`)\n",
+              "WHERE Quarter = 1 AND Year = 2026\n",
+              "GROUP BY Channel, `Device Type`\n",
+              "ORDER BY `Avg Cycle Time Days` ASC\n",
+              "LIMIT 1"
+            ]
+          }
+        ]
+      },
+      {
+        "id": "00000000000000000000000000000006",
+        "question": [
+          "What is the gross margin percent by channel for the most recent quarter?"
+        ],
+        "answer": [
+          {
+            "format": "SQL",
+            "content": [
+              "SELECT\n",
+              "  Channel,\n",
+              "  `Gross Margin Pct`\n",
+              "FROM MEASURE({{CATALOG}}.workshop_analytics.mv_gross_margin,\n",
+              "  `Gross Margin Pct`)\n",
+              "GROUP BY Channel\n",
+              "ORDER BY `Gross Margin Pct` DESC"
+            ]
+          }
+        ]
+      },
+      {
+        "id": "00000000000000000000000000000007",
+        "question": [
+          "Show total revenue by channel and device type in Q1 2026."
+        ],
+        "answer": [
+          {
+            "format": "SQL",
+            "content": [
+              "SELECT\n",
+              "  Channel,\n",
+              "  `Device Type`,\n",
+              "  `Total Revenue USD`\n",
+              "FROM MEASURE({{CATALOG}}.workshop_analytics.mv_revenue_by_channel,\n",
+              "  `Total Revenue USD`)\n",
+              "WHERE Quarter = 1 AND Year = 2026\n",
+              "GROUP BY Channel, `Device Type`\n",
+              "ORDER BY `Total Revenue USD` DESC"
+            ]
+          }
+        ]
+      },
+      {
+        "id": "00000000000000000000000000000008",
+        "question": [
+          "What is total recurring consumable revenue by channel?"
+        ],
+        "answer": [
+          {
+            "format": "SQL",
+            "content": [
+              "SELECT\n",
+              "  Channel,\n",
+              "  `Total Consumable Revenue 12m`\n",
+              "FROM MEASURE({{CATALOG}}.workshop_analytics.mv_recurring_revenue,\n",
+              "  `Total Consumable Revenue 12m`)\n",
+              "GROUP BY Channel\n",
+              "ORDER BY `Total Consumable Revenue 12m` DESC"
+            ]
+          }
+        ]
+      },
+      {
+        "id": "00000000000000000000000000000009",
+        "question": [
+          "Compare upfront vs recurring revenue by channel in Q1 2026."
+        ],
+        "answer": [
+          {
+            "format": "SQL",
+            "content": [
+              "SELECT\n",
+              "  Channel,\n",
+              "  `Total Upfront USD`,\n",
+              "  `Total Recurring USD`\n",
+              "FROM MEASURE({{CATALOG}}.workshop_analytics.mv_revenue_by_channel,\n",
+              "  `Total Upfront USD`, `Total Recurring USD`)\n",
+              "WHERE Quarter = 1 AND Year = 2026\n",
+              "GROUP BY Channel"
+            ]
+          }
+        ]
+      },
+      {
+        "id": "0000000000000000000000000000000a",
+        "question": [
+          "What is the average monthly consumable spend per patient by device type?"
+        ],
+        "answer": [
+          {
+            "format": "SQL",
+            "content": [
+              "SELECT\n",
+              "  `Device Type`,\n",
+              "  `Avg Monthly Consumable USD`\n",
+              "FROM MEASURE({{CATALOG}}.workshop_analytics.mv_recurring_revenue,\n",
+              "  `Avg Monthly Consumable USD`)\n",
+              "GROUP BY `Device Type`\n",
+              "ORDER BY `Avg Monthly Consumable USD` DESC"
+            ]
+          }
+        ]
+      },
+      {
+        "id": "0000000000000000000000000000000b",
+        "question": [
+          "Show me gross margin dollars and percent by region and device type."
+        ],
+        "answer": [
+          {
+            "format": "SQL",
+            "content": [
+              "SELECT\n",
+              "  Region,\n",
+              "  `Device Type`,\n",
+              "  `Margin USD`,\n",
+              "  `Gross Margin Pct`\n",
+              "FROM MEASURE({{CATALOG}}.workshop_analytics.mv_gross_margin,\n",
+              "  `Margin USD`, `Gross Margin Pct`)\n",
+              "GROUP BY Region, `Device Type`\n",
+              "ORDER BY `Gross Margin Pct` DESC"
+            ]
+          }
+        ]
+      },
+      {
+        "id": "0000000000000000000000000000000c",
+        "question": [
+          "How many patients reached Pump on Body in Q1 2026 by channel?"
+        ],
+        "answer": [
+          {
+            "format": "SQL",
+            "content": [
+              "SELECT\n",
+              "  Channel,\n",
+              "  `Patient Count`\n",
+              "FROM MEASURE({{CATALOG}}.workshop_analytics.mv_fulfillment_rate,\n",
+              "  `Patient Count`)\n",
+              "WHERE Quarter = 1 AND Year = 2026\n",
+              "GROUP BY Channel\n",
+              "ORDER BY `Patient Count` DESC"
+            ]
+          }
+        ]
+      },
+      {
+        "id": "0000000000000000000000000000000d",
+        "question": [
+          "What is total fulfillment cost by channel and quarter in 2026?"
+        ],
+        "answer": [
+          {
+            "format": "SQL",
+            "content": [
+              "SELECT\n",
+              "  Channel,\n",
+              "  Quarter,\n",
+              "  `Fulfillment Cost USD`\n",
+              "FROM MEASURE({{CATALOG}}.workshop_analytics.mv_gross_margin,\n",
+              "  `Fulfillment Cost USD`)\n",
+              "WHERE Year = 2026\n",
+              "GROUP BY Channel, Quarter\n",
+              "ORDER BY Channel, Quarter"
+            ]
+          }
+        ]
+      }
+    ]
+  }
+}

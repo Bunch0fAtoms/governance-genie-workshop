@@ -1,79 +1,76 @@
-# Governance and Genie Workshop: connection and capability check
+# Governance and Genie Workshop
 
-This repo confirms your workspace is ready for the workshop build before the
-session. It uses a minimal Declarative Automation Bundles (DAB, formerly Databricks
-Asset Bundles) configuration to run a connection and capability test. The full
-workshop materials will be added here before the day, and you will re-pull to get
-the latest.
+A one-day, hands-on workshop that builds a governed analytics foundation on Databricks and a
+governed Genie assistant on top of it. Everything runs on serverless compute with synthetic data, so
+nothing here touches real records.
 
-## What it checks
+The workshop has two layers:
 
-It runs a single notebook that creates a temporary schema, then runs each
-governance action the workshop uses, recording a pass or fail for each:
+- **A pre-built green foundation** you deploy and run once. It lands synthetic data, a
+  bronze / silver / gold medallion, six Unity Catalog metric views, a seeded access-control table,
+  and one worked governance example (a column mask on `ssn` and a region row filter).
+- **A participant arc** the room builds on top. It extends the governance pattern, then builds two
+  governed Genie spaces with Genie Code.
 
-1. Create a schema.
-2. Create a table and write a row.
-3. Apply a column mask (`SET MASK`).
-4. Apply a row filter (`SET ROW FILTER`).
-5. Set tags (`SET TAGS`).
-6. Grant and revoke a privilege.
+> Running the pre-session connection and capability check? That bundle now lives on the
+> [`connection-check`](../../tree/connection-check) branch.
 
-It then drops the schema, so it leaves nothing behind.
+## Deploy and run the green foundation (in the workspace, no local terminal)
 
-## Run it in the workspace (no local terminal needed)
+**1. Pull this repo as a Git folder.** In the workspace, go to Workspace, then Create, then Git
+folder, and paste `https://github.com/Bunch0fAtoms/governance-genie-workshop.git`.
 
-**1. Pull the repo as a Git folder.**
-In the workspace, go to Workspace, then Create, then Git folder, and paste
-`https://github.com/Bunch0fAtoms/governance-genie-workshop.git`.
+**2. Set your catalog.** Open `databricks.yml` and replace the `update_here` placeholder on the
+`catalog` variable with a catalog where you can create schemas. You can instead pass
+`--var catalog=<your_catalog>` from the command line, or set it in
+`.databricks/bundle/dev/variable-overrides.json`.
 
-**2. Deploy and run the bundle.**
-Open `databricks.yml`. The bundle (Deployments) panel opens on the left. Click
-**Deploy**, then run the **Connection and capability probe** job that Deploy creates.
+**3. Deploy and run.** Open `databricks.yml` to open the bundle panel, click **Deploy**, then run the
+**Foundation Build (pre-built, green)** job it creates. It runs five tasks and takes about five to
+eight minutes on serverless.
 
-**3. See the result on the run page.**
-Open that run. You can find it under Jobs and Pipelines, or click the link the
-panel shows. Click the task and read the **Output**. The result is a table of each
-capability with PASS or FAIL, followed by a `RESULT:` summary line.
+**4. Confirm it worked.** You should see grain of 300 patients, 3,900 gold claims, and 3,600 revenue
+rows, the access-control table seeded with 6 analyst and 8 steward grants, `ssn` masked to
+`***-**-NNNN`, and the region row filter in effect.
 
-### The quickest way to eyeball it
-
-Open `src/connection_test.py`. Attach **Serverless** and click **Run all**. The
-result table appears inline at the bottom of the notebook. This runs the same
-checks without deploying the job.
-
-By default it uses your workspace's current catalog. If the create-schema check
-fails with a permission error, set the **catalog** box at the top to a catalog
-where you can create a schema, then run again.
-
-## Where the result shows, and where it does not
-
-- **Shows:** on the run page (the task Output), and inline in the notebook cells
-  when you use Run all.
-- **Does not show:** in the notebook editor before or without a run. A cell that
-  reads only "Command ran successfully" with nothing under it means you are looking
-  at the editor, not a run. Open the run, or use Run all.
-
-A note on the logs: serverless startup lines such as
-`[SnapStart] Environment variable POD_HOSTNAME is not set` are normal and harmless.
-They are not errors. The `RESULT:` report is the line that matters.
-
-## Send the result back
-
-Reply with the `RESULT:` summary (or a screenshot of the result table). That tells
-us your workspace is ready, or exactly which capability to sort out before the day.
-
-## Optional: from a local terminal
-
-If you prefer the command line, with the Databricks command-line interface (CLI)
-authenticated to your workspace:
+### From a local terminal instead
 
 ```bash
-git clone https://github.com/Bunch0fAtoms/governance-genie-workshop.git
-cd governance-genie-workshop
-databricks bundle deploy -t dev --profile <your-profile>
-databricks bundle run connection_test -t dev --profile <your-profile>
+databricks bundle deploy -t dev --profile <your-profile> --var "catalog=<your_catalog>"
+databricks bundle run foundation_build -t dev --profile <your-profile> --var "catalog=<your_catalog>"
 ```
 
-The `RESULT:` report prints at the end of the run. It uses your workspace's current
-catalog by default. To test a specific catalog, add
-`--var="catalog=<your_catalog>"` to the deploy and run commands.
+## Who sees masked data
+
+The column mask and row filter exempt the account groups `workshop_stewards` and `workshop_admins`.
+Create those in the account console before the session. On a workspace where those groups are not set
+up, exempt your own user instead with `--var "privileged_principals=you@example.com"`. An empty value
+exempts no one, so every caller sees the masked view.
+
+## What the room builds (the participant arc)
+
+The green foundation demonstrates the governance pattern once. The room then works the notebooks in
+`notebooks/todo/`:
+
+1. **Extend the masks** (`phase_2_classification_masks.py`): apply the same pattern to `dob`,
+   `patient_name`, and the `patient_id` join key. The join key becomes a deterministic token, so a
+   masked analyst can still join on it and get correct matches.
+2. **Apply access control** (`apply_access_control.py`): reconcile the seeded policy table to real
+   Unity Catalog grants, with auto-expiry.
+3. **Build a derived product** (`step10_payer_segment_metric_view.py`): add the payer-segment
+   dimension the certified data lacks, then expose it as a Unity Catalog metric view.
+4. **Build two Genie spaces** with Genie Code and the prompt-to-genie skill: one on the certified
+   metric views, and a clone that also includes the derived payer metric view, which answers a
+   question the certified layer alone cannot.
+
+## The Genie Code happy path
+
+The exact Genie Code prompts and the verified answers are in
+`reference/ANSWER_KEY/step07-12_genie_spaces.md`. The completed version of every participant step
+lives in `reference/ANSWER_KEY/`, for the facilitator. Do not hand it to the room before they try
+each step.
+
+## Everything is synthetic
+
+All patients, claims, and revenue are generated with a fixed seed and are fully reproducible. No real
+records are used anywhere in this kit.
