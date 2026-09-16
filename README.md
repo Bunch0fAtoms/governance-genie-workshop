@@ -29,9 +29,9 @@ folder, and paste `https://github.com/Bunch0fAtoms/governance-genie-workshop.git
 **Foundation Build (pre-built, green)** job it creates. It runs five tasks and takes about five to
 eight minutes on serverless.
 
-**4. Confirm it worked.** You should see grain of 300 patients, 3,900 gold claims, and 3,600 revenue
-rows, the access-control table seeded with 6 analyst and 8 steward grants, `ssn` masked to
-`***-**-NNNN`, and the region row filter in effect.
+**4. Confirm it worked.** You should see 300 patient rows, 3,900 gold claims, and 3,600 revenue rows.
+The access-control table should carry 6 analyst grants and 8 steward grants. `ssn` should be masked
+to `***-**-NNNN`, and the region row filter should be in effect.
 
 ### From a local terminal instead
 
@@ -65,8 +65,9 @@ The green foundation demonstrates the governance pattern once. The room then wor
 
 ## The Genie Code happy path
 
-The room builds the two Genie spaces by prompting Genie Code with the prompt-to-genie skill. The
-serialized space specifications and the verify queries live in `genie/`: `genie_space.json`,
+The room builds the two Genie spaces by prompting Genie Code with the prompt-to-genie skill (an
+agent skill that turns a plain-language request into a Genie space). The serialized space
+specifications and the verify queries live in `genie/`: `genie_space.json`,
 `genie_space_payer.json`, the `verify_*.sql` oracles, and a walkthrough in `genie/README.md`.
 
 ## Everything is synthetic
