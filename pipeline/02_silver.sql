@@ -1,5 +1,5 @@
 -- =============================================================================
--- Tandem Channel-Shift Foundation Pipeline (Spark Declarative Pipelines) - SILVER
+-- Channel-Shift Foundation Pipeline (Spark Declarative Pipelines) - SILVER
 -- =============================================================================
 -- Silver layer: deduplicate on grain keys, enrich, and add quality flags.
 -- Reads the bronze pipeline datasets by their plain name; the pipeline resolves

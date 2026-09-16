@@ -65,10 +65,9 @@ The green foundation demonstrates the governance pattern once. The room then wor
 
 ## The Genie Code happy path
 
-The exact Genie Code prompts and the verified answers are in
-`reference/ANSWER_KEY/step07-12_genie_spaces.md`. The completed version of every participant step
-lives in `reference/ANSWER_KEY/`, for the facilitator. Do not hand it to the room before they try
-each step.
+The room builds the two Genie spaces by prompting Genie Code with the prompt-to-genie skill. The
+serialized space specifications and the verify queries live in `genie/`: `genie_space.json`,
+`genie_space_payer.json`, the `verify_*.sql` oracles, and a walkthrough in `genie/README.md`.
 
 ## Everything is synthetic
 

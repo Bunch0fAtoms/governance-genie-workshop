@@ -13,8 +13,8 @@
 # MAGIC - one column-mask policy (`mask_ssn_policy`) and one row-filter policy (`region_row_filter_policy`).
 # MAGIC
 # MAGIC **Your job is to extend that working example to the remaining identifiers.** Build it with Genie
-# MAGIC Code or by hand. The exact solution is in `reference/ANSWER_KEY/phase_2_classification_masks.py`;
-# MAGIC this notebook is the facts-only specification. All objects are the pre-built gold materialized
+# MAGIC Code or by hand. Your workshop facilitator holds the worked solution; this notebook is the
+# MAGIC facts-only specification. All objects are the pre-built gold materialized
 # MAGIC views in `workshop_analytics`, so tags and comments bind with `ALTER MATERIALIZED VIEW`.
 
 # COMMAND ----------

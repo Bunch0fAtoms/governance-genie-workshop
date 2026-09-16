@@ -10,7 +10,7 @@
 #
 #   2. The PARTICIPANT layer (notebooks/todo/ and the apply_access_control engine).
 #      The room builds the governance and Genie layers on top of the green foundation.
-#      The reference/ANSWER_KEY holds the exact correct version of every step.
+#      The facilitator holds the worked solution for every step.
 #
 # Deploy (bind your workspace with --profile and point --var catalog at a catalog
 # where you can create schemas; catalog is required, there is no default):

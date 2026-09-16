@@ -1,8 +1,8 @@
 # Databricks notebook source
 # MAGIC %md
-# MAGIC # Foundation Build: Synthetic Patients, Claims, Revenue, HCPs (Tandem Channel-Shift)
+# MAGIC # Foundation Build: Synthetic Patients, Claims, Revenue, HCPs (Channel-Shift)
 # MAGIC
-# MAGIC This notebook generates synthetic data for the Tandem three-phase governance + Genie + HCP commercial workshop.
+# MAGIC This notebook generates synthetic data for the three-phase governance + Genie + HCP commercial workshop.
 # MAGIC All data is 100% synthetic for capability demonstration.
 # MAGIC
 # MAGIC **Generates:**
@@ -52,7 +52,7 @@ print(f"Schema:             {schema}")
 
 # NOTE: Catalogs are pre-provisioned on this workspace. Some workspaces do not allow CREATE CATALOG on
 # the shared metastore, so we do NOT create catalogs here; we create schemas inside the
-# existing catalog(s) passed in via parameters. On Tandem's own Azure metastore, the two
+# existing catalog(s) passed in via parameters. On your own Azure metastore, the two
 # catalogs (workshop_certified / workshop_sandbox) can be created up front and passed in instead.
 
 # Create the certified analytics + governance schemas in the certified catalog

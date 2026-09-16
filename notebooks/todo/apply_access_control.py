@@ -38,7 +38,7 @@ SELECT
   expires_at,
   _active
 FROM {catalog}.workshop_governance.access_control
-""").cache()
+""")
 
 active_count = control_df.filter("_active = true").count()
 expired_count = control_df.filter("_active = false").count()

@@ -1,5 +1,5 @@
 -- =============================================================================
--- Tandem Channel-Shift Foundation Pipeline (Spark Declarative Pipelines) - BRONZE
+-- Channel-Shift Foundation Pipeline (Spark Declarative Pipelines) - BRONZE
 -- =============================================================================
 -- Bronze layer: a raw copy of the synthetic foundation seed tables, plus the
 -- technical metadata columns (_loaded_at, _source, _has_phi, _has_pii).

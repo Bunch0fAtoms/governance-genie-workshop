@@ -1,5 +1,5 @@
 -- =============================================================================
--- Tandem Channel-Shift Foundation Pipeline (Spark Declarative Pipelines) - GOLD
+-- Channel-Shift Foundation Pipeline (Spark Declarative Pipelines) - GOLD
 -- =============================================================================
 -- Gold layer: business-ready, certified data products. These three materialized
 -- views are the certified surface the workshop governs (masks, row filter, tags
